@@ -141,6 +141,6 @@ This runs Python matplotlib-based plotting script to show the trend of infection
 
 # Executing large-scale scenarios in parallel
 
-- Contact the [author(s)](kalyan.s.perumalla@gmail.com) before attempting large scenarios on many processors, in order to correctly plan and configure.
+- Contact the [author(s)](mailto:kalyan.s.perumalla@gmail.com) before attempting large scenarios on many processors, in order to correctly plan and configure.
 
-- This release is neither intended nor configured for runtime performance benchmarking or comparisons, so please refrain from reporting runtime data.  Please contact the [author(s)](kalyan.s.perumalla@gmail.com) if/as necessary.
+- This release is neither intended nor configured for runtime performance benchmarking or comparisons, so please refrain from reporting runtime data.  Please contact the [author(s)](mailto:kalyan.s.perumalla@gmail.com) if/as necessary.
