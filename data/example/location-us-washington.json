@@ -1,0 +1,10 @@
+{
+    "population" : "7.5 million",
+    "ages" : [
+        { "from" :  0, "to" : 20, "percentage" : 15 },
+        { "from" : 21, "to" : 40, "percentage" : 35 },
+        { "from" : 41, "to" : 60, "percentage" : 30 },
+        { "from" : 61, "to" : 80, "percentage" : 15 },
+        { "from" : 81, "to" : 99, "percentage" :  5 }
+    ]
+}

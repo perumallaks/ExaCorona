@@ -1,0 +1,14 @@
+{
+    "active regions" : [
+        { "name" : "United States", "file" : "region-us.json"    },
+        { "name" : "Japan",         "file" : "region-japan.json" },
+        { "name" : "China",         "file" : "region-china.json" },
+        { "name" : "Spain",         "file" : "region-spain.json" },
+        { "name" : "Italy",         "file" : "region-italy.json" }
+    ],
+    "unused regions" : [
+        { "name" : "Iran",          "file" : "region-iran.json" },
+        { "name" : "India",         "file" : "region-india.json" },
+        { "name" : "United Kingdom","file" : "region-uk.json" }
+    ]
+}

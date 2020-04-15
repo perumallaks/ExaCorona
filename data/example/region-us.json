@@ -1,0 +1,12 @@
+{
+    "locations from files" : [
+        { "name" : "New York",   "file" : "location-us-newyork.json" },
+        { "name" : "Washington", "file" : "location-us-washington.json" },
+        { "name" : "California", "file" : "location-us-california.json" }
+    ],
+    "locations from distribution" : {
+        "number of locations" : 10,
+        "total population" : 0,
+        "distribution" : "exponential"
+    }
+}

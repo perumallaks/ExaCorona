@@ -1,0 +1,9 @@
+{
+    "locations from files" : [
+    ],
+    "locations from distribution" : {
+        "locations" : 100,
+        "population" : "126 million",
+        "distribution" : "exponential"
+    }
+}

@@ -1,0 +1,6 @@
+{
+    "geography"          : "geography.json",
+    "mobility"           : "mobility.json",
+    "disease-normal"     : "disease-normal.json",
+    "disease-vaccinated" : "disease-vaccinated.json"
+}

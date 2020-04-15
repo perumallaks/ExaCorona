@@ -1,0 +1,24 @@
+{
+  "statesdoc": "0 will be the starting state",
+  "states": {
+    "uninfected" : 0,
+    "latent"     : 1,
+    "incubating" : 2,
+    "infectious" : 3,
+    "asympt"     : 4,
+    "recovered"  : 5,
+    "dead"       : 6
+   },
+  "transitionsdoc": "from-state :{to-state :[probability, dwelllo, dwellhi]}",
+  "transitions": {
+    "uninfected" :{"latent"     :[0.90, 0.0,  2.0],
+                   "incubating" :[0.10, 1.0,  1.0]},
+    "latent"     :{"infectious" :[1.00, 2.0, 14.0]},
+    "infectious" :{"recovered"  :[0.97, 0.0,  7.0],
+                   "dead"       :[0.03, 7.0, 21.0]},
+    "incubating" :{"asympt"     :[1.00, 2.0,  2.0]},
+    "asympt"     :{"recovered"  :[1.00, 0.0,  0.0]},
+    "recovered"  :{"recovered"  :[1.00, 0.0,  0.0]},
+    "dead"       :{"dead"       :[1.00, 0.0,  0.0]}
+   }
+}

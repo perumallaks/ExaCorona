@@ -1,0 +1,7 @@
+{
+    "scaledown factor"   : 10000,
+    "scenario"           : "../data/example",
+    "endtime"            : 10.0,
+    "lookahead"          : 1.0
+
+}
