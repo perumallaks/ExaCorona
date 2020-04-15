@@ -3,7 +3,8 @@
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
-EXACORONA = ../bin/exacorona
+BINDIR = ../bin
+EXACORONA = $(BINDIR)/exacorona
 MUSIKDIR = ./musik
 CXX = mpiCC
 CC = mpicc
@@ -23,8 +24,11 @@ clean:
 	cd musik; $(MAKE) clean
 
 #------------------------------------------------------------------------------
-$(EXACORONA): exacorona.cpp $(MUSIKDIR)/libmusik.a
+$(EXACORONA): $(BINDIR) exacorona.cpp $(MUSIKDIR)/libmusik.a
 	$(CXX) -o $(EXACORONA) $(CFLAGS) exacorona.cpp $(LDFLAGS)
+
+$(BINDIR):
+	mkdir $(BINDIR)
 
 $(MUSIKDIR)/libmusik.a:
 	cd $(MUSIKDIR); $(MAKE)
