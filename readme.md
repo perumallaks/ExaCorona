@@ -1,5 +1,7 @@
 # ExaCorona
 
+[https://github.com/perumallaks/ExaCorona](https://github.com/perumallaks/ExaCorona)
+
 **Scalable Simulator of Corona and Similar Pandemics**
 
 _Kalyan Perumalla_
@@ -117,7 +119,7 @@ This runs Python matplotlib-based plotting script to show the trend of infection
 - Install C/C++, etc.  
   `sudo apt-get install build-essential`
 
-- Install Message Passing Interface (MPI) support
+- Install Message Passing Interface (MPI) support  
   `sudo apt install libopenmpi-dev`
 
 ## Ensure you can plot with Python's `matplotlib`

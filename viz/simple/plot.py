@@ -6,7 +6,7 @@ alls = [] #series ID
 allx = [] #timestamps
 ally = [] #total infections
 
-with open('exacorona.csv','r') as csvfile:
+with open('exacorona-0.csv','r') as csvfile:
     plots = csv.reader(csvfile, delimiter=',')
     for row in plots:
         sid = int(row[0])
