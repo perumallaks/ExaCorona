@@ -8,7 +8,7 @@ _Kalyan Perumalla_
 
 # Intro Video
 
-[[Image](https://img.youtube.com/vi/xRajXglguF8/0.jpg)](https://youtu.be/xRajXglguF8)
+[![Image](https://img.youtube.com/vi/xRajXglguF8/0.jpg)](https://youtu.be/xRajXglguF8)
 
 # Quick Start
 
