@@ -1,32 +1,14 @@
 # ExaCorona
 
+**Scalable Simulator of Corona and Similar Pandemics**
+
 _Kalyan Perumalla_
 
 **Last updated**: _April 15, 2020_
 
-**Scalable Simulator of Corona and Similar Pandemics**
+# Intro Video
 
-Aimed at at least three dimensions of scalability:
-
-- Level of detail in the model(s) behaviors.  Examples:
-    - Evolution of disease: list of states (normal, latent, infectious, recovered, dead, etc.) and timed inter-state transition graph
-    - Number of individuals or groups
-    - Location-specific resources
-    - Information propagation, policy enforncement, etc.
-    - Transportation modes, mobility rules, etc.
-    - Curfews, vaccination campaigns, quarantines, etc.
-- Spatial scope and reach of the pandemic. Examples:
-    - World-scale
-    - Multiple countries
-    - One country with multiple states
-    - One state with multiple cities, etc.
-    - Neighborhoods, types of locations
-- Number of processors that can be employed to simulate a scenario
-    - Small laptop
-    - Powerful desktop or server
-    - Cluster
-    - Racks
-    - Supercomputers
+[[Image](https://img.youtube.com/vi/xRajXglguF8/0.jpg)](https://youtu.be/xRajXglguF8)
 
 # Quick Start
 
@@ -40,6 +22,30 @@ Aimed at at least three dimensions of scalability:
 - **ACM-TOMACS'14** : "Discrete Event Execution with One-Sided and Two-Sided GVT Algorithms on 216,000 Processor Cores," Kalyan Perumalla, Alfred Park, and Vinod Tipparaju, ACM TOMACS 24(3), 2014 [DOI 10.1145/2611561](https://doi.org/10.1145/2611561)
 
 - **SIMULATION'12** : "Discrete Event Modeling and Massively Parallel Execution of Epidemic Outbreak Phenomena," Kalyan Perumalla and Sudip Seal, SIMULATION: Transactions of the Society for Modeling and Simulation International, 2012 [DOI 10.1177/0037549711413001](https://doi.org/10.1177/0037549711413001)
+
+# Scalability
+
+ExaCorona is aimed at at least three dimensions of scalability:
+
+- Level of detail in the model(s) behaviors.  **Examples**:
+    - Evolution of disease: list of states (normal, latent, infectious, recovered, dead, etc.) and timed inter-state transition graph
+    - Number of individuals or groups
+    - Location-specific resources
+    - Information propagation, policy enforncement, etc.
+    - Transportation modes, mobility rules, etc.
+    - Curfews, vaccination campaigns, quarantines, etc.
+- Spatial scope and reach of the pandemic. **Examples**:
+    - World-scale
+    - Multiple countries
+    - One country with multiple states
+    - One state with multiple cities, etc.
+    - Neighborhoods, types of locations
+- Number of processors that can be employed to simulate a scenario.  **Examples**:
+    - Small laptop
+    - Powerful desktop or server
+    - Cluster
+    - Racks
+    - Supercomputers
 
 # Repository Structure
 
