@@ -10,6 +10,12 @@ _Kalyan Perumalla_
 
 # Introduction
 
+# Animations Video
+
+Animations previously generated for publications cited below.  The animation tool previously used for these animations is in the process of being restored for ExaCorona.
+
+[![Image](https://img.youtube.com/vi/HdQYkztNdVc/0.jpg)](https://youtu.be/HdQYkztNdVc)
+
 # Overview Video
 
 [![Image](https://img.youtube.com/vi/xRajXglguF8/0.jpg)](https://youtu.be/xRajXglguF8)
