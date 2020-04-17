@@ -2,7 +2,7 @@
 
 [https://github.com/perumallaks/ExaCorona](https://github.com/perumallaks/ExaCorona)
 
-**Scalable Simulator of Corona and Similar Pandemics**
+**Scalable Generator of Simulated Datasets for COVID and Similar Pandemics**
 
 _Kalyan Perumalla_
 
@@ -54,7 +54,7 @@ ExaCorona is aimed at at least three dimensions of scalability:
     - One country with multiple states
     - One state with multiple cities, etc.
     - Neighborhoods, types of locations
-- Number of processors that can be employed to simulate a scenario.  **Examples**:
+- Number of processors that can be employed to execute a scenario.  **Examples**:
     - Small laptop
     - Powerful desktop or server
     - Cluster
@@ -63,13 +63,13 @@ ExaCorona is aimed at at least three dimensions of scalability:
 
 # Repository Structure
 
-- `sim` : Contains the simulator proper
+- `sim` : Contains the simulated dataset generator proper
 
-    - `sim/src` : Contains the simulator proper
+    - `sim/src` : Contains the simulated dataset generator proper
         - `exacorona.cpp` : Contains the discrete event model of virus spread
-        - `musik` : Contains the parallel discrete event simulation engine `musik`
+        - `musik` : Contains the parallel discrete event engine `musik`
 
-    - `sim/bin` : The simulator executable `exacorona` will be here upon compilation
+    - `sim/bin` : The executable `exacorona` will be here upon compilation
 
 - `data` : Houses the scenarios, each a sub-directory of its own
 
@@ -80,7 +80,7 @@ ExaCorona is aimed at at least three dimensions of scalability:
 
 - `docs` : Houses copies of related publications
 
-- `run` : Contains script(s) to execute the simulator
+- `run` : Contains script(s) to execute the simulated dataset generator
 
     - `run/run.sh` : Change directory to `run` and execute `./run.sh` to kick-off the scenario `example.json`.
 
@@ -90,17 +90,17 @@ ExaCorona is aimed at at least three dimensions of scalability:
 
 # Installation, Compilation, and Execution
 
-## Compile the simulator
+## Compile the simulated dataset generator
 
--   Compile the ExaCorona simulator along with the underlying `musik` parallel simulation engine
+-   Compile ExaCorona along with the underlying `musik` parallel simulation engine
 
       `cd sim/src; make`
 
-    This creates the simulator executable `sim/bin/exacorona`.
+    This creates the executable `sim/bin/exacorona`.
 
-## Run the simulation
+## Run the simulated dataset generator
 
--   Execute the simulator
+-   Execute:
 
       `cd run; ./run.sh`
 
@@ -108,12 +108,12 @@ ExaCorona is aimed at at least three dimensions of scalability:
 
     - The `run/example.json` uses the scenario specified in `data/example`.
 
-    - The simulator generates multiple "log" files.
+    - This generates multiple "log" files.
         - `stdout-0.log`: Standard output is redirected to this file.
         - `exacorona-0.log`: The disease model output is written to this file.
         - `musik-0.log`: The simulation engine's activity is logged to this file.
         - `tm-0.log`: The simulation engine's virtual time synchronization activity is logged to this file.
-    - In parallel simulation runs using multiple processors, each MPI rank (or simply, each processor) generates a file named with its rank.
+    - In parallel runs using multiple processors, each MPI rank (or simply, each processor) generates a file named with its rank.
     - For example, in a 2-processor run, `stdout-0.log` and `stdout-1.log` are created by processor 0 and processor 1, respectively.
 
 ## Plot some of the output
@@ -157,7 +157,7 @@ This runs Python matplotlib-based plotting script to show the trend of infection
 - Copy `run/example.json` to the work directory.
 - Edit the `example.json` to set the correct path to the scenario directory.
 - Make your job run the `exacorona` executable with command-line argument `example.json`.
-- After the simulation ends, copy the `exacorona.log` output file to where you want to process and visualize it.
+- After the generator ends, copy the `exacorona.log` output file to where you want to process and visualize it.
 
 # Executing large-scale scenarios in parallel
 
