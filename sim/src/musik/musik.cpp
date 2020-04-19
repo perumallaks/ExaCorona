@@ -2051,8 +2051,8 @@ void SimProcess::timedout( SimTimerID timer_id, void *closure ) {}
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
-void CopyState::pack_to( void *buf ) { memcpy( buf, this, num_bytes() ); }
-void CopyState::unpack_from(const void *buf){memcpy( this, buf, num_bytes() );}
+void CopyState::pack_to( void *buf ) { memcpy( buf, (void*)this, num_bytes() ); }
+void CopyState::unpack_from(const void *buf){memcpy( (void*)this, buf, num_bytes() );}
 void CopyState::freeing( const void *buf ) {}
 
 /*---------------------------------------------------------------------------*/
