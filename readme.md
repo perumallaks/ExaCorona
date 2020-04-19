@@ -1,12 +1,14 @@
 # ExaCorona
 
-[https://github.com/perumallaks/ExaCorona](https://github.com/perumallaks/ExaCorona)
-
-**Scalable Generator of Simulated Datasets for COVID and Similar Pandemics**
-
 _Kalyan Perumalla_
 
-**Last updated**: _April 15, 2020_
+**Last updated**: _April 19, 2020_
+
+- **Scalable Generator of Simulated Datasets for COVID and Similar Pandemics**
+
+- **Tested on Linux, MacOS, and Summit Supercomputer**
+
+- [https://github.com/perumallaks/ExaCorona](https://github.com/perumallaks/ExaCorona)
 
 # Introduction
 
@@ -141,6 +143,48 @@ This runs Python matplotlib-based plotting script to show the trend of infection
 
 - Install `matplotlib` if you don't already have:  
   `pip3 install matplotlib`
+
+# Installation on MacOS
+
+## Tested Configuration
+
+- MacBook Pro
+- macOS Cataline Version 10.15.4
+- Xcode 11.4
+- OpenMPI 2.0.4
+
+## Installing XCode and OpenMPI
+
+### Install Xcode
+
+Install XCode from App Store, which will get commandline tools (C/C++ compiler, make, etc.).
+
+### Install OpenMPI
+
+```console
+$ curl -O 'https://download.open-mpi.org/release/open-mpi/v2.0/openmpi-2.0.4.tar.gz'
+
+$ tar -zxf openmpi-2.0.4.tar.gz
+$ cd openmpi-2.0.4
+
+# We will install at user-level locally
+$ mkdir ~/opt ~/opt/usr ~/opt/usr/local
+$ ./configure --prefix=$HOME/opt/usr/local
+
+$ make all
+$ make install
+
+# Add the path to openmpi executables
+$ export PATH=$PATH:$HOME/opt/usr/local/bin
+
+# Verify that mpirun works
+$ $HOME/opt/usr/local/bin/mpirun --version
+$ $HOME/opt/usr/local/bin/mpirun -np 2 /bin/ls
+```
+
+## ExaCorona Compilation
+
+Compilation, execution and visualization steps are similar to those on Linux.
 
 # Installation on the OLCF Summit Supercomputer
 

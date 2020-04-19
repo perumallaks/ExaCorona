@@ -6,11 +6,14 @@
 BINDIR = ../bin
 EXACORONA = $(BINDIR)/exacorona
 MUSIKDIR = ./musik
-CXX = mpiCC
+#CXX = mpiCC
+CXX = mpic++
 CC = mpicc
 
 #------------------------------------------------------------------------------
-# Add -std=gnu++11 if compiler not already accepting C++11
+# If compiler not already accepting C++11:
+#     * MacOS: Add -std=c++11
+#     * Summit: Add -std=gnu++11
 #------------------------------------------------------------------------------
 CFLAGS  = -DMPI_AVAILABLE=1 -I$(MUSIKDIR) -I$(MUSIKDIR)/libsynk
 LDLIBS  = -L$(MUSIKDIR) -L$(MUSIKDIR)/libsynk -lmusik -lsynk

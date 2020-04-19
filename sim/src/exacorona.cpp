@@ -1076,7 +1076,7 @@ void Region::init( int ac, char *av[] )
     endtu.ts = 10.0;
 
     const char *envstr = 0;
-    if(envstr=getenv("EXACORONA_NBRREACH")) prob.nbrreach = atoi(envstr);
+    if((envstr=getenv("EXACORONA_NBRREACH"))) prob.nbrreach = atoi(envstr);
     SIMCFG( "EXACORONA_NBRREACH", prob.nbrreach, "+/-Neighbor Reach" );
     ENSURE( 0, prob.nbrreach < 0 || prob.nbrreach <= nlocations,
             "nbrreach " << prob.nbrreach << " should be -1 or <="<<nlocations );

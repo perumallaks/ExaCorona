@@ -4,11 +4,13 @@
 #ifndef __MYCOMPAT_H
 #define __MYCOMPAT_H
 
-//XXX Forget about heterogeneous platforms - April 2020
-#define ntohl(_) _
-#define htonl(_) _
-#define ntohs(_) _
-#define htons(_) _
+#ifndef ntohl
+    //XXX Forget about heterogeneous platforms - April 2020
+    #define ntohl(_) _
+    #define htonl(_) _
+    #define ntohs(_) _
+    #define htons(_) _
+#endif /*ntohl*/
 
 /*---------------------------------------------------------------------------*/
 #if defined(_WIN32) || defined(_WIN32_WCE)

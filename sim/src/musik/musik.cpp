@@ -866,10 +866,6 @@ bool RemoteFederateProcess::try_to_send( SimEventBase *e, bool immediately )
     //Send it out on the wire, if so requested
     bool sent = immediately ? Synk_FMSendEvent( e->data._dest.fed_id, e ) : false;
 
-#if !NODEBUG
-if(0)ENSURE(0,sent,"");//XXX Debugging only
-#endif
-
     if( !sent ) //Add back to unsent event heap
     {
         ueh.add( e );

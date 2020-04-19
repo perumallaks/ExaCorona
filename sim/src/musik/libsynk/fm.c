@@ -891,7 +891,7 @@ if(mixfm->dbg>=4){printf("Read subnet type \"%s\"\n",nettype_str);}
 		    hname[0] = 0;
 		    sscanf(hnamestr, "%s%n", hname, &nbytes);
 		    hnamestr += nbytes;
-		    if( !hname ) break;
+		    if( !hname[0] ) break;
 		    p = strchr( hname, '=' );
 		    if( p ) *p = 0;
 		    strcpy( othername, p ? p+1 : hname );
