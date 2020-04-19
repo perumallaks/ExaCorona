@@ -184,7 +184,8 @@ $ $HOME/opt/usr/local/bin/mpirun -np 2 /bin/ls
 
 ## ExaCorona Compilation
 
-Compilation, execution and visualization steps are similar to those on Linux.
+- In `sim/src/Makefile`, add `-std=c++11` to `CFLAGS`.
+- Rest of the compilation, execution and visualization steps are similar to those on Linux.
 
 # Installation on the OLCF Summit Supercomputer
 
