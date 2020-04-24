@@ -1,6 +1,6 @@
 {
-    "scaledown factor"   : 10000,
-    "scenario"           : "../data/example",
-    "endtime"            : "10.0 days",
-    "lookahead"          : "1.0 minute"
+    "scenario"    : "../data/example",
+    "scaledown"   : "10000x",
+    "endtime"     : "10.0 days",
+    "lookahead"   : "1.0 minute"
 }

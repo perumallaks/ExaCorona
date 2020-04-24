@@ -36,66 +36,43 @@ class Region;
 //-----------------------------------------------------------------------------
 class GlobalConfig
 {
-    public: GlobalConfig( void ) {}
-    public: virtual ~GlobalConfig() {}
-    public: double endtime, lookahead;
-    public: string endtimeunit;
-    public: long scaledown;
     public: string scenariodir;
+    public: double scaledown;
+    public: double endtime;
+    public: double lookahead;
     public: struct {string filename;} geo, mob, pttsnorm, pttsvacc;
     public: void load( json &js );
     public: const string &prefdir( const string &fname )
-            { static string s; s=scenariodir+"/"+fname; return s; }
+                  { static string s; s=scenariodir+"/"+fname; return s; }
 } gconfig;
 
 //-----------------------------------------------------------------------------
-int string2int( const string &_s )
-{
-    int retval = 0;
-    string s = _s, mil = "million", thou = "thousand";
-    size_t i = s.find(mil);
-    if( i != std::string::npos )
-    {
-        s.replace(i, mil.length(), "");
-        retval = stoi(s) * 1000000;
-    }
-    else
-    {
-        i = s.find(thou);
-        if( i != std::string::npos )
-        {
-            s.replace(i, thou.length(), "");
-            retval = stoi(s) * 1000;
-        }
-        else
-        {
-            retval = stoi(s);
-        }
-    }
-    return retval;
-}
+typedef unsigned int ISBitsType;
+typedef unsigned char ISFeatureType;
 
 //-----------------------------------------------------------------------------
 class InfectionState
 {
-    public: static const short DEFAULTSTATE = 0;
     public: InfectionState( const InfectionState &is ) : bits(is.bits) {}
-    public: InfectionState( void ) : bits(0) { set(DEFAULTSTATE); }
+    public: InfectionState( void ) : bits(0) { set(0); }
     public: virtual ~InfectionState() {}
     public: const InfectionState &operator=( const InfectionState &is )
                 { bits = is.bits; return *this; }
 
-    public: typedef unsigned int BitsType;
-    public: static unsigned int max( void ) { return sizeof(BitsType)*8; }
-    public: bool isset(unsigned int feature)const{return !!(bits & (1<<feature));}
-    public: void resetto( unsigned int feature ) { bits=0; set(feature); }
-    public: int get( unsigned int i=0 ) const
-            {for(int n=max(); i<n; i++){if(isset(i))return i;} return -1;}
+    public: static ISFeatureType max( void )
+                { return sizeof(ISBitsType)*8; }
+    public: bool isset(ISFeatureType feature)const
+                { return !!(bits & (1<<feature)); }
+    public: void resetto( ISFeatureType feature )
+                { bits=0; set(feature); }
+    public: int get( ISFeatureType i=0 ) const
+                { for(ISFeatureType n=max(); i<n; i++) {if(isset(i))return i;}
+                  return -1; }
 
-    private: void set( unsigned int feature ) { bits |= (1 << feature); }
-    private: void unset( unsigned int feature ) { bits &= (~(1 << feature)); }
+    private: void set( ISFeatureType feature ) { bits |= (1 << feature); }
+    private: void unset( ISFeatureType feature ) { bits &= (~(1 << feature)); }
 
-    private: BitsType bits;
+    private: ISBitsType bits;
 
     public: ostream &operator>>( ostream &out ) const
                 {return out <<"{"<<bits<<"}";}
@@ -105,17 +82,22 @@ ostream &operator<<(ostream &out, const InfectionState &is){return is>>out;}
 //-----------------------------------------------------------------------------
 class HealthTransition
 {
-    public: struct Entry {int j; double prob; struct{double dwelltime;}lo,hi;};
-    public: struct Category {int *is; int ni;};
+    public: struct Entry
+            {
+                ISFeatureType j;
+                double prob;
+                struct{double dwelltime;} lo, hi;
+            };
+    public: struct Category {ISFeatureType *is; ISFeatureType ni;};
     public: void allocate( void )
             {
                 ttablesz = InfectionState::max();
                 typedef Entry *EntryStar;
                 ttable = new EntryStar[ttablesz];
-                for( int i = 0; i < ttablesz; i++ )
+                for( ISFeatureType i = 0; i < ttablesz; i++ )
                 {
                     ttable[i] = new Entry[ttablesz];
-                    for( int j = 0; j < ttablesz; j++ )
+                    for( ISFeatureType j = 0; j < ttablesz; j++ )
                     {
                         ttable[i][j].j = j;
                         ttable[i][j].prob = 0.0;
@@ -126,13 +108,13 @@ class HealthTransition
                 lastn = 0;
                 statenames = new string[ttablesz];
 
-                catnormal.is = new int[ttablesz]; catnormal.ni = 0;
-                catinfect.is = new int[ttablesz]; catinfect.ni = 0;
+                catnormal.is = new ISFeatureType[ttablesz]; catnormal.ni = 0;
+                catinfect.is = new ISFeatureType[ttablesz]; catinfect.ni = 0;
             }
     public: void deallocate( void )
             {
                 if( !ttable ) return;
-                for( int i = 0; i < ttablesz; i++ )
+                for( ISFeatureType i = 0; i < ttablesz; i++ )
                 {
                     delete [] ttable[i];
                     ttable[i] = 0;
@@ -145,9 +127,9 @@ class HealthTransition
     public: void copy( const HealthTransition &ht )
             {
                 numstates = ht.numstates;
-                for( int i = 0; i < ttablesz; i++ )
+                for( ISFeatureType i = 0; i < ttablesz; i++ )
                 {
-                    for( int j = 0; j < ttablesz; j++ )
+                    for( ISFeatureType j = 0; j < ttablesz; j++ )
                     {
                         ttable[i][j] = ht.ttable[i][j];
                     }
@@ -156,12 +138,12 @@ class HealthTransition
                 lastn = ht.lastn;
 
                 catnormal.ni = ht.catnormal.ni;
-                for( int i = 0; i < ht.catnormal.ni; i++ )
+                for( ISFeatureType i = 0; i < ht.catnormal.ni; i++ )
                 {
                     catnormal.is[i] = ht.catnormal.is[i];
                 }
                 catinfect.ni = ht.catinfect.ni;
-                for( int i = 0; i < ht.catinfect.ni; i++ )
+                for( ISFeatureType i = 0; i < ht.catinfect.ni; i++ )
                 {
                     catinfect.is[i] = ht.catinfect.is[i];
                 }
@@ -188,10 +170,10 @@ class HealthTransition
     public: bool verify( void )
             {
                 bool valid = true;
-                for( int i = 0; i < lastn; i++ )
+                for( ISFeatureType i = 0; i < lastn; i++ )
                 {
                     double sum = 0;
-                    for( int j = 0; j < lastn; j++ )
+                    for( ISFeatureType j = 0; j < lastn; j++ )
                     {
                         double p = ttable[i][j].prob;
                         if( 0 <= p && p <= 1.0 )
@@ -217,7 +199,7 @@ class HealthTransition
                         break;
                     }
                 }
-                for( int i = 0; i < catnormal.ni; i++ )
+                for( ISFeatureType i = 0; i < catnormal.ni; i++ )
                 {
                     if( !( 0 <= catnormal.is[i] && catnormal.is[i] < lastn ) )
                     {
@@ -225,7 +207,7 @@ class HealthTransition
                         break;
                     }
                 }
-                for( int i = 0; i < catinfect.ni; i++ )
+                for( ISFeatureType i = 0; i < catinfect.ni; i++ )
                 {
                     if( !( 0 <= catinfect.is[i] && catinfect.is[i] < lastn ) )
                     {
@@ -235,12 +217,12 @@ class HealthTransition
                 }
                 return valid;
             }
-    public: void setstatename( int i, const string &nm )
+    public: void setstatename( ISFeatureType i, const string &nm )
             {
                 ENSURE( 0, 0 <= i && i < ttablesz, "" );
                 statenames[i] = nm;
             }
-    public: void addtransition( int i, int j, double p, double low, double high)
+    public: void addtransition( ISFeatureType i, ISFeatureType j, double p, double low, double high)
             {
                 ENSURE( 0, 0 <= i && i < ttablesz, "" );
                 ENSURE( 0, 0 <= j && j < ttablesz, "" );
@@ -253,9 +235,9 @@ class HealthTransition
                 lastn = (lastn <= i ? i+1 : lastn);
                 lastn = (lastn <= j ? j+1 : lastn);
             }
-    public: const Entry &nextstate( int i, double p ) const
+    public: const Entry &nextstate( ISFeatureType i, double p ) const
             {
-                int j = 0;
+                ISFeatureType j = 0;
                 double sum = 0;
                 ENSURE( 0, 0 <= p && p <= 1.0, "" );
                 while( j < lastn )
@@ -273,18 +255,18 @@ class HealthTransition
                 ENSURE( 0, j < lastn, j << " " << lastn );
                 return ttable[i][j];
             }
-    public: void addcatnormal( int normi )
+    public: void addcatnormal( ISFeatureType normi )
             {
                 catnormal.is[catnormal.ni++] = normi;
             }
-    public: void addcatinfectious( int infi )
+    public: void addcatinfectious( ISFeatureType infi )
             {
                 catinfect.is[catinfect.ni++] = infi;
             }
     public: bool isnormal( const InfectionState &istate ) const
             {
                 bool mark = false;
-                for( int i = 0; i < catnormal.ni; i++ )
+                for( ISFeatureType i = 0; i < catnormal.ni; i++ )
                 {
                     if( istate.isset(catnormal.is[i]) )
                     {
@@ -297,7 +279,7 @@ class HealthTransition
     public: bool isinfectious( const InfectionState &istate ) const
             {
                 bool mark = false;
-                for( int i = 0; i < catinfect.ni; i++ )
+                for( ISFeatureType i = 0; i < catinfect.ni; i++ )
                 {
                     if( istate.isset(catinfect.is[i]) )
                     {
@@ -308,8 +290,8 @@ class HealthTransition
                 return mark;
             }
     private: Entry **ttable;
-    private: int ttablesz, lastn;
-    private: int numstates;
+    private: ISFeatureType ttablesz, lastn;
+    private: ISFeatureType numstates;
     private: string *statenames;
     public: Category catnormal, catinfect;
 
@@ -326,7 +308,7 @@ class Person
     public: Person( void ) :
         personid(0), createdat(), age(0),
         vaccinated(false), rng(0), infectts(SimTime::MAX_TIME), istate() {}
-    public: Person( const PersonID &_i, const SimPID &_l, const double &_a,
+    public: Person( const PersonID &_i, const SimPID &_l, const float &_a,
                     const double &_d ) :
         personid(_i), createdat(_l), age(_a),
         vaccinated(false), rng(_d), infectts(SimTime::MAX_TIME), istate() {}
@@ -343,12 +325,12 @@ class Person
     public: void setinfectts(const SimTime &ts){ infectts = ts; }
     public: const SimTime &getinfectts(void)const{ return infectts; }
 
-    public: void markinfectious( int is )
+    public: void markinfectious( ISFeatureType is )
                      { istate.resetto(is); }
 
     public: const PersonID &getpersonid(void)const{return personid;}
     public: const SimPID &getcreatedat(void)const{return createdat;}
-    public: const double &getage(void)const{return age;}
+    public: const float &getage(void)const{return age;}
 
     public: void setvaccinated( void ){ vaccinated = true; }
     public: bool isvaccinated( void )const{ return vaccinated; }
@@ -362,7 +344,7 @@ class Person
     /*These remain constant/unmodified after creation*/
     private: PersonID personid;
     private: SimPID createdat;
-    private: double age;
+    private: float age;
     private: bool vaccinated;
     private: double rng;
 
@@ -488,6 +470,8 @@ class Region : public Simulator
     public: static double SECS2TU(const double &secs){return secs/3600.0;}
     public: static double parsetime( const string &timestr );
 
+    public: static long string2long(const string &str);
+
     protected: void randinit(int n) { RandInit(n, fed_id()); }
 
     public:  struct Stats
@@ -517,19 +501,19 @@ class Region : public Simulator
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-enum RedifEventType { ARRIVAL, DEPARTURE, ISTATECHANGE, STATS };
-struct RedifData
+enum ExaCoronaEventType { ARRIVAL, DEPARTURE, ISTATECHANGE, STATS };
+struct ExaCoronaData
 {
-    RedifEventType etype;
+    ExaCoronaEventType etype;
     int ninfected;
 };
-class RedifEvent : public SimEvent
+class ExaCoronaEvent : public SimEvent
 {
-    DEFINE_BASE_EVENT(Redif, RedifEvent, SimEvent);
-    public: RedifEvent( const RedifEventType &et )
-            { rdata.etype = et; rdata.ninfected = 0; }
-    public: const RedifEventType &getetype( void ) const { return rdata.etype; }
-    public: RedifData rdata;
+    DEFINE_BASE_EVENT(ExaCorona, ExaCoronaEvent, SimEvent);
+    public: ExaCoronaEvent( const ExaCoronaEventType &et )
+            { edata.etype = et; edata.ninfected = 0; }
+    public: const ExaCoronaEventType &getetype(void)const{return edata.etype;}
+    public: ExaCoronaData edata;
 };
 
 //-----------------------------------------------------------------------------
@@ -537,13 +521,13 @@ struct ArrivalData
 {
     Person person;
 };
-class ArrivalEvent : public RedifEvent
+class ArrivalEvent : public ExaCoronaEvent
 {
-    DEFINE_LEAF_EVENT(Arrival, ArrivalEvent, RedifEvent);
+    DEFINE_LEAF_EVENT(Arrival, ArrivalEvent, ExaCoronaEvent);
     public: ArrivalEvent(void) :
-            RedifEvent(ARRIVAL) {}
+            ExaCoronaEvent(ARRIVAL) {}
     public: ArrivalEvent( const Person &p ) :
-            RedifEvent(ARRIVAL) { data.person = p; }
+            ExaCoronaEvent(ARRIVAL) { data.person = p; }
 
     public: ArrivalData data;
 };
@@ -553,13 +537,13 @@ struct DepartureData
 {
     Person::PersonID tempid;
 };
-class DepartureEvent : public RedifEvent
+class DepartureEvent : public ExaCoronaEvent
 {
-    DEFINE_LEAF_EVENT(Departure, DepartureEvent, RedifEvent);
+    DEFINE_LEAF_EVENT(Departure, DepartureEvent, ExaCoronaEvent);
     public: DepartureEvent( void ) :
-            RedifEvent(DEPARTURE) {}
+            ExaCoronaEvent(DEPARTURE) {}
     public: DepartureEvent( const Person::PersonID &id ) :
-            RedifEvent(DEPARTURE) { data.tempid = id; }
+            ExaCoronaEvent(DEPARTURE) { data.tempid = id; }
 
     public: DepartureData data;
 };
@@ -571,15 +555,15 @@ struct InfectionStateChangeData
     int saved_istate;
     SimTime saved_infectts;
 };
-class InfectionStateChangeEvent : public RedifEvent
+class InfectionStateChangeEvent : public ExaCoronaEvent
 {
     DEFINE_LEAF_EVENT(InfectionStateChange,
-            InfectionStateChangeEvent, RedifEvent);
+            InfectionStateChangeEvent, ExaCoronaEvent);
     public: InfectionStateChangeEvent( void ) :
-            RedifEvent(ISTATECHANGE)
+            ExaCoronaEvent(ISTATECHANGE)
             { data.saved_infectts = SimTime::MAX_TIME; }
     public: InfectionStateChangeEvent( const Person::PersonID &id ) :
-            RedifEvent(ISTATECHANGE)
+            ExaCoronaEvent(ISTATECHANGE)
             { data.tempid = id; data.saved_infectts = SimTime::MAX_TIME; }
     public: InfectionStateChangeData data;
 };
@@ -589,16 +573,16 @@ struct StatisticsData
 {
     int ninfected;
 };
-class StatisticsEvent : public RedifEvent
+class StatisticsEvent : public ExaCoronaEvent
 {
-    DEFINE_LEAF_EVENT(Statistics, StatisticsEvent, RedifEvent);
-    public: StatisticsEvent( void ) : RedifEvent(STATS) { data.ninfected = 0; }
+    DEFINE_LEAF_EVENT(Statistics, StatisticsEvent, ExaCoronaEvent);
+    public: StatisticsEvent( void ) : ExaCoronaEvent(STATS) { data.ninfected = 0; }
     public: StatisticsData data;
 };
 //-----------------------------------------------------------------------------
 struct EventData
 {
-    RedifData redif;
+    ExaCoronaData redif;
     union
     {
         ArrivalData arr;
@@ -706,7 +690,7 @@ void Collector::compute_total( void )
 void Collector::execute( SimEvent *event )
 {
     Region *reg = psim();
-    RedifEvent *re = reinterpret_cast<RedifEvent *>(event);
+    ExaCoronaEvent *re = reinterpret_cast<ExaCoronaEvent *>(event);
     ENSURE( 0, re->getetype() == STATS, "" );
     StatisticsEvent *se = reinterpret_cast<StatisticsEvent *>(re);
     ninfected[event->source()] = se->data.ninfected;
@@ -746,7 +730,7 @@ Location::Location( long pnum,
         json js; ifstream ifs( jsfname ); ifs >> js;
         EXADBG(0,"Location done reading file");
         const string &popstr = js["population"];
-        initialpop = string2int(popstr);
+        initialpop = Region::string2long(popstr);
         EXADBG(0,locname << " initial population " << initialpop);
         initialpop = initialpop / gconfig.scaledown;
         EXADBG(0,locname << " scaled-down initial population " << initialpop);
@@ -921,7 +905,7 @@ int Location::infect_occupants( const Person::PersonID &tempid )
 void Location::execute( SimEvent *event )
 {
     Region *reg = psim();
-    RedifEvent *re = reinterpret_cast<RedifEvent *>(event);
+    ExaCoronaEvent *re = reinterpret_cast<ExaCoronaEvent *>(event);
 
     nrecd++;
 
@@ -961,7 +945,7 @@ if(re->source().fed_id!=PID().fed_id){
             DepartureEvent *de = new DepartureEvent( tempid );
             send( PID(), de, depdt );
 
-            re->rdata.ninfected = infect_occupants( tempid );
+            re->edata.ninfected = infect_occupants( tempid );
 
             EXADBG( 2, PID()<<" @ "<<now()<<" DEPARTURE of "<<
                        person<<" at "<<depts );
@@ -1047,7 +1031,7 @@ if(re->source().fed_id!=PID().fed_id){
             EXADBG(0,"SCE "<<person.getpersonid()<<" "<<person.getistate().get());
 
             /*If this became infectious, determine effect on others*/
-            re->rdata.ninfected = infect_occupants( ie->data.tempid );
+            re->edata.ninfected = infect_occupants( ie->data.tempid );
 
             break;
         }
@@ -1065,13 +1049,13 @@ void Location::commit_event( SimEventBase *event, bool is_kernel)
 {
     if( !is_kernel )
     {
-        RedifEvent *re = (RedifEvent *)event;
-        if( re->rdata.ninfected > 0 )
+        ExaCoronaEvent *re = (ExaCoronaEvent *)event;
+        if( re->edata.ninfected > 0 )
         {
-            ninfected += re->rdata.ninfected;
+            ninfected += re->edata.ninfected;
             EXADBG( 0, PID() << " @ " << now().ts <<
                    " EVENTNAME= " << *event->name() <<
-                   " NINFECTED " << re->rdata.ninfected <<
+                   " NINFECTED " << re->edata.ninfected <<
                    " TOTINFECTED " << ninfected );
         }
     }
@@ -1310,11 +1294,47 @@ double Region::TU( const string &timeunitstr, double tm )
     return tu;
 }
 
+//-----------------------------------------------------------------------------
+long Region::string2long( const string &_s )
+{
+    long retval = 0;
+    string s = _s, bil = "billion", mil = "million", thou = "thousand";
+    size_t i = s.find(bil);
+    if( i != std::string::npos )
+    {
+        s.replace(i, bil.length(), "");
+        retval = stol(s) * 1000000000;
+    }
+    else
+    {
+        i = s.find(mil);
+        if( i != std::string::npos )
+        {
+            s.replace(i, mil.length(), "");
+            retval = stol(s) * 1000000;
+        }
+        else
+        {
+            i = s.find(thou);
+            if( i != std::string::npos )
+            {
+                s.replace(i, thou.length(), "");
+                retval = stol(s) * 1000;
+            }
+            else
+            {
+                retval = stol(s);
+            }
+        }
+    }
+    return retval;
+}
+
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
 int app_event_type( const SimEvent *ev )
 {
-    RedifEvent *re = (RedifEvent *)ev;
+    ExaCoronaEvent *re = (ExaCoronaEvent *)ev;
     EXADBG( 8, "app_event_event_type " << re->getetype() );
     return re->getetype();
 }
@@ -1378,14 +1398,14 @@ void app_event_data_pack( int evtype, const SimEvent *ev, char *buf, int bufsz )
         case ARRIVAL: 
         {
             const ArrivalEvent *ae = reinterpret_cast<const ArrivalEvent*>(ev);
-            ed->redif = ae->rdata;
+            ed->redif = ae->edata;
             ed->arr = ae->data;
             break;
         }
         case DEPARTURE: 
         {
             const DepartureEvent *de = reinterpret_cast<const DepartureEvent*>(ev);
-            ed->redif = de->rdata;
+            ed->redif = de->edata;
             ed->dep = de->data;
             break;
         }
@@ -1393,14 +1413,14 @@ void app_event_data_pack( int evtype, const SimEvent *ev, char *buf, int bufsz )
         {
             const InfectionStateChangeEvent *ie =
                     reinterpret_cast<const InfectionStateChangeEvent*>(ev);
-            ed->redif = ie->rdata;
+            ed->redif = ie->edata;
             ed->isc = ie->data;
             break;
         }
         case STATS: 
         {
             const StatisticsEvent *se = reinterpret_cast<const StatisticsEvent*>(ev);
-            ed->redif = se->rdata;
+            ed->redif = se->edata;
             ed->stat = se->data;
             break;
         }
@@ -1424,14 +1444,14 @@ void app_event_data_unpack( int evtype, SimEvent *ev, const char *buf, int bufsz
         case ARRIVAL: 
         {
             ArrivalEvent *ae = reinterpret_cast<ArrivalEvent*>(ev);
-            ae->rdata = ed->redif;
+            ae->edata = ed->redif;
             ae->data = ed->arr;
             break;
         }
         case DEPARTURE: 
         {
             DepartureEvent *de = reinterpret_cast<DepartureEvent*>(ev);
-            de->rdata = ed->redif;
+            de->edata = ed->redif;
             de->data = ed->dep;
             break;
         }
@@ -1439,14 +1459,14 @@ void app_event_data_unpack( int evtype, SimEvent *ev, const char *buf, int bufsz
         {
             InfectionStateChangeEvent *ie =
                     reinterpret_cast<InfectionStateChangeEvent*>(ev);
-            ie->rdata = ed->redif;
+            ie->edata = ed->redif;
             ie->data = ed->isc;
             break;
         }
         case STATS: 
         {
             StatisticsEvent *se = reinterpret_cast<StatisticsEvent*>(ev);
-            se->rdata = ed->redif;
+            se->edata = ed->redif;
             se->data = ed->stat;
             break;
         }
@@ -1462,12 +1482,13 @@ void app_event_data_unpack( int evtype, SimEvent *ev, const char *buf, int bufsz
 /*---------------------------------------------------------------------------*/
 void GlobalConfig::load( json &js )
 {
-    gconfig.scaledown         = js["scaledown factor"];
+    gconfig.scenariodir       = js["scenario"];
+    string scaledownstr       = js["scaledown"];
+    gconfig.scaledown         = stod(scaledownstr);
     string endtimestr         = js["endtime"];
     gconfig.endtime           = Region::parsetime(endtimestr);
     string lookaheadstr       = js["lookahead"];
     gconfig.lookahead         = Region::parsetime(lookaheadstr);
-    gconfig.scenariodir       = js["scenario"];
 
     {
         string sfname = prefdir("scenario.json");
@@ -1483,32 +1504,6 @@ void GlobalConfig::load( json &js )
 /*---------------------------------------------------------------------------*/
 int main( int ac, char *av[] )
 {
-    string tmstr;
-    tmstr="10months"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10month"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10 months"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10 month"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10weeks"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10week"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10 weeks"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10 week"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10days"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10day"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10 days"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10 day"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10hours"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10hour"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10 hours"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10 hour"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10minutes"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10minute"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10 minutes"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10 minute"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10seconds"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10second"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10 seconds"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-    tmstr="10 second"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
-
     {
         string gconfigfname = "exacorona.json";
         if( ac > 1 )
