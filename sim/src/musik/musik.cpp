@@ -1690,10 +1690,10 @@ void MicroKernel::stop( void )
 
     unsigned long exed = get_estats().executed, cmed = get_estats().committed;
     unsigned long  rbed = get_estats().rolledback, sent = get_estats().sent;
-    printf("%ld:     Executed events = %10lu\n", fed_id(), exed);
-    printf("%ld:    Committed events = %10lu [ %5.2lf %% ]\n", fed_id(), cmed, (exed<=0?0:(cmed*100.0/exed)));
-    printf("%ld:   Rolledback events = %10lu [ %5.2lf %% ]\n", fed_id(), rbed, (exed<=0?0:(rbed*100.0/exed)));
-    cout << fed_id() << ": -------------------------------------" << endl;
+    MUSDBG(0, fed_id() << ":     Executed events = " << exed);
+    MUSDBG(0, fed_id() << ":    Committed events = " << cmed << " [ " << (exed<=0?0:(cmed*100.0/exed)) << " % ]");
+    MUSDBG(0, fed_id() << ":   Rolledback events = " << rbed << " [ " << (exed<=0?0:(rbed*100.0/exed)) << " % ]");
+    MUSDBG(0, fed_id() << ": -------------------------------------" );
     }
 
     #if MPI_AVAILABLE
@@ -1707,13 +1707,13 @@ void MicroKernel::stop( void )
           _3 = outx; \
           if( fed_id() < _printdbgmaxfedid ) \
           { \
-              printf( " %12ld", outx ); \
+              sprintf(bigstr," %12ld", outx); MUSDBGNNL(0,bigstr); \
           } \
         } while(0)
       #define MGET( _1, _2 ) do{ \
           if( fed_id() < _printdbgmaxfedid ) \
           { \
-          printf( "Stats-%-12s", #_1 ); \
+          sprintf(bigstr, "Stats-%-12s", #_1); MUSDBGNNL(0,bigstr); \
           } \
           RGET( get_estats()._1, MPI_MIN, _2.min ); \
           RGET( get_estats()._1, MPI_MAX, _2.max ); \
@@ -1721,25 +1721,27 @@ void MicroKernel::stop( void )
           double davg = _2.sum*1.0/num_feds(); \
           if( fed_id() < _printdbgmaxfedid ) \
           { \
-          printf( " %12.2lf", davg ); \
-          printf( " %+9.2lf %%", davg<=0?0:((_2.max-davg)/davg*100.0) ); \
-          printf( " %+9.2lf %%", davg<=0?0:((_2.min-davg)/davg*100.0) ); \
-          printf( "\n" ); \
+          sprintf(bigstr, " %12.2lf", davg); MUSDBGNNL(0,bigstr); \
+          sprintf(bigstr, " %+9.2lf %%", davg<=0?0:((_2.max-davg)/davg*100.0)); MUSDBGNNL(0,bigstr); \
+          sprintf(bigstr, " %+9.2lf %%", davg<=0?0:((_2.min-davg)/davg*100.0)); MUSDBGNNL(0,bigstr); \
+          MUSDBG(0, "" ); \
           } \
         } while(0)
       /*------*/
       {
+          char bigstr[1000];
           if( fed_id() < _printdbgmaxfedid )
           {
-          printf( "------------------\n" );
-          printf( "Stats-%-12s %12s %12s %12s %12s %9s %9s\n", "x", "Min", "Max", "Sum", "Avg", "Avg+%", "Avg-%" );
+          MUSDBG(0,"------------------");
+          sprintf(bigstr,"Stats-%-12s %12s %12s %12s %12s %9s %9s", "x", "Min", "Max", "Sum", "Avg", "Avg+%", "Avg-%" );
+          MUSDBG(0,bigstr);
           }
           MGET( executed, totex );
           MGET( committed, totcm );
           MGET( rolledback, totrb );
           if( fed_id() < _printdbgmaxfedid )
           {
-          printf( "------------------\n" );
+          MUSDBG(0,"------------------");
           }
           double cmpcnt = 0, rbpcnt = 0, exevrate = 0, cmevrate = 0;
           if( totex.sum > 0 )
@@ -1751,11 +1753,11 @@ void MicroKernel::stop( void )
           }
           if( fed_id() < _printdbgmaxfedid )
           {
-          printf( "Overall-Committed     %5.2lf %%\n", cmpcnt);
-          printf( "Overall-Rolledback    %5.2lf %%\n", rbpcnt);
-          printf( "Overall-ExecutedRate  %9.2lf MilEv/s\n", exevrate/1e6 );
-          printf( "Overall-CommittedRate %9.2lf MilEv/s\n", cmevrate/1e6 );
-          printf( "------------------\n" );
+          sprintf(bigstr,"Overall-Committed     %5.2lf %%", cmpcnt); MUSDBG(0,bigstr);
+          sprintf(bigstr,"Overall-Rolledback    %5.2lf %%", rbpcnt); MUSDBG(0,bigstr);
+          sprintf(bigstr,"Overall-ExecutedRate  %9.2lf MilEv/s", exevrate/1e6 ); MUSDBG(0,bigstr);
+          sprintf(bigstr,"Overall-CommittedRate %9.2lf MilEv/s", cmevrate/1e6 ); MUSDBG(0,bigstr);
+          MUSDBG(0,"------------------" );
           }
       }
       /*------*/

@@ -34,14 +34,12 @@ class Location;
 class Region;
 
 //-----------------------------------------------------------------------------
-static const short UNINFECTED=0, INFECTIOUS=2;
-
-//-----------------------------------------------------------------------------
 class GlobalConfig
 {
     public: GlobalConfig( void ) {}
     public: virtual ~GlobalConfig() {}
     public: double endtime, lookahead;
+    public: string endtimeunit;
     public: long scaledown;
     public: string scenariodir;
     public: struct {string filename;} geo, mob, pttsnorm, pttsvacc;
@@ -80,7 +78,7 @@ int string2int( const string &_s )
 //-----------------------------------------------------------------------------
 class InfectionState
 {
-    public: static const short DEFAULTSTATE = UNINFECTED;
+    public: static const short DEFAULTSTATE = 0;
     public: InfectionState( const InfectionState &is ) : bits(is.bits) {}
     public: InfectionState( void ) : bits(0) { set(DEFAULTSTATE); }
     public: virtual ~InfectionState() {}
@@ -98,12 +96,17 @@ class InfectionState
     private: void unset( unsigned int feature ) { bits &= (~(1 << feature)); }
 
     private: BitsType bits;
+
+    public: ostream &operator>>( ostream &out ) const
+                {return out <<"{"<<bits<<"}";}
 };
+ostream &operator<<(ostream &out, const InfectionState &is){return is>>out;}
 
 //-----------------------------------------------------------------------------
 class HealthTransition
 {
     public: struct Entry {int j; double prob; struct{double dwelltime;}lo,hi;};
+    public: struct Category {int *is; int ni;};
     public: void allocate( void )
             {
                 ttablesz = InfectionState::max();
@@ -122,6 +125,9 @@ class HealthTransition
                 }
                 lastn = 0;
                 statenames = new string[ttablesz];
+
+                catnormal.is = new int[ttablesz]; catnormal.ni = 0;
+                catinfect.is = new int[ttablesz]; catinfect.ni = 0;
             }
     public: void deallocate( void )
             {
@@ -133,6 +139,8 @@ class HealthTransition
                 }
                 delete [] ttable; ttable = 0;
                 delete [] statenames; statenames = 0;
+                delete [] catnormal.is; catnormal.is = 0;
+                delete [] catinfect.is; catinfect.is = 0;
             }
     public: void copy( const HealthTransition &ht )
             {
@@ -146,6 +154,17 @@ class HealthTransition
                     setstatename( i, ht.statenames[i] );
                 }
                 lastn = ht.lastn;
+
+                catnormal.ni = ht.catnormal.ni;
+                for( int i = 0; i < ht.catnormal.ni; i++ )
+                {
+                    catnormal.is[i] = ht.catnormal.is[i];
+                }
+                catinfect.ni = ht.catinfect.ni;
+                for( int i = 0; i < ht.catinfect.ni; i++ )
+                {
+                    catinfect.is[i] = ht.catinfect.is[i];
+                }
             }
     public: void loadptts( json &js );
     public: HealthTransition( const HealthTransition &ht )
@@ -198,6 +217,22 @@ class HealthTransition
                         break;
                     }
                 }
+                for( int i = 0; i < catnormal.ni; i++ )
+                {
+                    if( !( 0 <= catnormal.is[i] && catnormal.is[i] < lastn ) )
+                    {
+                        valid = false;
+                        break;
+                    }
+                }
+                for( int i = 0; i < catinfect.ni; i++ )
+                {
+                    if( !( 0 <= catinfect.is[i] && catinfect.is[i] < lastn ) )
+                    {
+                        valid = false;
+                        break;
+                    }
+                }
                 return valid;
             }
     public: void setstatename( int i, const string &nm )
@@ -238,11 +273,50 @@ class HealthTransition
                 ENSURE( 0, j < lastn, j << " " << lastn );
                 return ttable[i][j];
             }
+    public: void addcatnormal( int normi )
+            {
+                catnormal.is[catnormal.ni++] = normi;
+            }
+    public: void addcatinfectious( int infi )
+            {
+                catinfect.is[catinfect.ni++] = infi;
+            }
+    public: bool isnormal( const InfectionState &istate ) const
+            {
+                bool mark = false;
+                for( int i = 0; i < catnormal.ni; i++ )
+                {
+                    if( istate.isset(catnormal.is[i]) )
+                    {
+                        mark = true;
+                        break;
+                    }
+                }
+                return mark;
+            }
+    public: bool isinfectious( const InfectionState &istate ) const
+            {
+                bool mark = false;
+                for( int i = 0; i < catinfect.ni; i++ )
+                {
+                    if( istate.isset(catinfect.is[i]) )
+                    {
+                        mark = true;
+                        break;
+                    }
+                }
+                return mark;
+            }
     private: Entry **ttable;
     private: int ttablesz, lastn;
     private: int numstates;
     private: string *statenames;
+    public: Category catnormal, catinfect;
+
+    public: ostream &operator>>( ostream &out ) const
+                {return out <<"{"<<ttablesz<<" "<<lastn<<" "<<numstates<<"}";}
 };
+ostream &operator<<(ostream &out, const HealthTransition &hs){return hs>>out;}
 
 //-----------------------------------------------------------------------------
 class Person
@@ -269,10 +343,8 @@ class Person
     public: void setinfectts(const SimTime &ts){ infectts = ts; }
     public: const SimTime &getinfectts(void)const{ return infectts; }
 
-    public: void markinfectious( void )
-                 { istate.resetto(INFECTIOUS); }
-    public: bool isinfectious( void )const
-                 { return istate.isset(INFECTIOUS); }
+    public: void markinfectious( int is )
+                     { istate.resetto(is); }
 
     public: const PersonID &getpersonid(void)const{return personid;}
     public: const SimPID &getcreatedat(void)const{return createdat;}
@@ -300,8 +372,7 @@ class Person
 
     public: ostream &operator>>( ostream &out ) const
                   { return out <<"{"<<createdat<<"."<<personid<<" "
-                               <<(isvaccinated()?"V":"")
-                               <<(isinfectious()?"I":"") <<" "
+                               <<getistate()<<" "
                                <<rng<<" NTS@"<<infectts
                                <<" IS"<<istate.get()<<"}"; }
 };
@@ -344,7 +415,7 @@ class Location : public NormalSimProcess
     protected: typedef map<Person::PersonID, PersonContainer> OccupantMap;
     protected: OccupantMap occupants;
     protected: unsigned long tempid_counter;/*For unique temp IDs of occupants*/
-    protected: struct { HealthTransition ptts; } normal, vaccinated;
+    protected: HealthTransition ptts_normal, ptts_vaccinated;
 
     protected: virtual void commit_event( SimEventBase *e, bool is_kernel );
 
@@ -408,10 +479,14 @@ class Region : public Simulator
     protected: SimTime endtu;
 
     /*Time-unit conversions*/
-    public: static double DAYS2TU(const double &days){ return days*24.0; }
-    public: static double HRS2TU(const double &hrs){ return hrs; }
-    public: static double SECS2TU(const double &secs){ return secs/3600.0;}
-    public: static double MINS2TU(const double &mins){ return mins/60.0;}
+    public: static double TU(const string &tunitstr, double tm);
+    public: static double MONTHS2TU(const double &months){return months*30*7*24.0;}
+    public: static double WEEKS2TU(const double &weeks){return weeks*7*24.0;}
+    public: static double DAYS2TU(const double &days){return days*24.0;}
+    public: static double HRS2TU(const double &hrs){return hrs;}
+    public: static double MINS2TU(const double &mins){return mins/60.0;}
+    public: static double SECS2TU(const double &secs){return secs/3600.0;}
+    public: static double parsetime( const string &timestr );
 
     protected: void randinit(int n) { RandInit(n, fed_id()); }
 
@@ -547,6 +622,29 @@ void HealthTransition::loadptts( json &js )
         EXADBG(0, "State[\"" << stname << "\"] -> "<<stnum);
     }
 
+    const json &categories = js["categories"];
+    EXADBG(0,"PTTS #categories " << categories.size());
+    const json &catnorm = categories["normal"];
+    EXADBG(0,"PTTS #catnormal " << catnorm.size());
+    for(auto &cn : catnorm.items())
+    {
+        const string &stname = cn.value();
+        EXADBG(0,"catnorm: "<<stname);
+        int stnum = states[stname];
+        addcatnormal( stnum );
+    }
+    const json &catinf = categories["infectious"];
+    for(auto &cn : catinf.items())
+    {
+        const string &stname = cn.value();
+        EXADBG(0,"catinf: "<<stname);
+        int stnum = states[stname];
+        addcatinfectious( stnum );
+    }
+
+    EXADBG(0,"fetching timeunit");
+    string timeunit = js["timeunit"];
+    EXADBG(0,"timeunit: "<<timeunit);
     const json &transitions = js["transitions"];
     for(auto &tr : transitions.items())
     {
@@ -565,11 +663,12 @@ void HealthTransition::loadptts( json &js )
             double prob = params[0];
             double dwelllo = params[1];
             double dwellhi = params[2];
-            EXADBG( 0, "\t" << tostname << "(" << tostnum << ")" << params.size()
+            EXADBG( 0, "\t" << tostname << "(" << tostnum << ")"
                        << " prob= " << prob << " dwell=[" << dwelllo << ", "
                        << dwellhi << "]" );
-            addtransition( fromstnum, tostnum, prob,
-                           Region::DAYS2TU(dwelllo), Region::DAYS2TU(dwellhi) );
+            double dwelllotu = Region::TU(timeunit,dwelllo);
+            double dwellhitu = Region::TU(timeunit,dwellhi);
+            addtransition( fromstnum, tostnum, prob, dwelllotu, dwellhitu );
         }
     }
 
@@ -630,8 +729,8 @@ void Collector::wrapup( void )
 //-----------------------------------------------------------------------------
 Location::Location( long pnum,
                     const string &lname, const string &jsfname,
-                    const HealthTransition &pttsnorm,
-                    const HealthTransition &pttsvacc ) :
+                    const HealthTransition &_pnorm,
+                    const HealthTransition &_pinf ) :
     locnum(pnum), locname(lname), nsent(0), nrecd(0), ninfected(0),
     occupants(), tempid_counter(0)
 {
@@ -639,8 +738,8 @@ Location::Location( long pnum,
     enable_undo( false, 10*reg->getlatu(), 0 );
     add_dest( SimPID::ANY_PID, reg->getlatu() );
 
-    normal.ptts = pttsnorm;
-    vaccinated.ptts = pttsvacc;
+    ptts_normal = _pnorm;
+    ptts_vaccinated = _pinf;
 
     {
         EXADBG(0,"Location reading file "<<jsfname);
@@ -675,7 +774,8 @@ void Location::init( void )
             SimTime infectdt = reg->getlatu() +
                                Region::HRS2TU(randexp(0.1));//XXX CUSTOMIZE
             SimTime infectts = arrdt+infectdt;
-            newp.markinfectious();
+            int infstate = 2; //XXX
+            newp.markinfectious( infstate );
             newp.setinfectts(infectts);
             ninf++;
         }
@@ -701,7 +801,7 @@ void Location::init( void )
 void Location::evolve_infection( Person &person, const SimTime &dts, int tempid)
 {
     const HealthTransition &trans =
-            (person.isvaccinated() ?  vaccinated.ptts : normal.ptts);
+            (person.isvaccinated() ?  ptts_vaccinated : ptts_normal);
     int ist = person.getistate().get();
     double rng = randunif();
     const HealthTransition::Entry &entry = trans.nextstate( ist, rng );
@@ -734,7 +834,9 @@ void Location::recompute_infectprob( void )
     {
         const PersonContainer &container = it->second;
         const Person &person = container.getperson();
-        if( person.isinfectious() )
+        const HealthTransition &trans =
+                (person.isvaccinated() ?  ptts_vaccinated : ptts_normal);
+        if( trans.isinfectious(person.getistate()) )
         {
             SimTime dt = container.getdts() - now(); //XXX arrival_ts or now()?
             overlapdt += dt.ts;
@@ -759,9 +861,9 @@ int Location::infect_occupants( const Person::PersonID &tempid )
     ENSURE( 0, it != occupants.end(), "" );
     PersonContainer &container = it->second;
     Person &arrperson = container.accperson();
-    if( !arrperson.isinfectious() )
+    if( !ptts_normal.isinfectious(arrperson.getistate()) )
     {
-        if( arrperson.getistate().get()==UNINFECTED &&
+        if( ptts_normal.isnormal(arrperson.getistate()) &&
             arrperson.getrng() <= infectprob )
         {
             ENSURE( 0, arrperson.getinfectts() >= SimTime::MAX_TIME, arrperson);
@@ -782,7 +884,7 @@ int Location::infect_occupants( const Person::PersonID &tempid )
       {
         PersonContainer &container = it->second;
         Person &person = container.accperson();
-        if( person.getistate().get()==UNINFECTED &&
+        if( ptts_normal.isnormal(person.getistate()) &&
             person.getrng() <= infectprob )
         {
             ENSURE( 0, person.getinfectts() >= SimTime::MAX_TIME, person );
@@ -918,8 +1020,8 @@ if(re->source().fed_id!=PID().fed_id){
 
             occupants.erase( de->data.tempid );
 
-            EXADBG( 2, PID()<<" @ "<<now()<<" DEPARTURE of "<<
-                       ae->data.person<<" to "<<dest );
+            EXADBG(2, PID()<<" @ "<<now()<<" DEPARTURE of "<<
+                      ae->data.person<<" to "<<dest);
             break;
         }
         case ISTATECHANGE:
@@ -942,6 +1044,7 @@ if(re->source().fed_id!=PID().fed_id){
             evolve_infection( person, container.getdts(), ie->data.tempid );
 
             ANIMT("SCE "<<person.getpersonid()<<" "<<person.getistate().get());
+            EXADBG(0,"SCE "<<person.getpersonid()<<" "<<person.getistate().get());
 
             /*If this became infectious, determine effect on others*/
             re->rdata.ninfected = infect_occupants( ie->data.tempid );
@@ -992,7 +1095,7 @@ void Location::wrapup( void )
 Region::Region( void ) :
     regname(""), nlocations(2), npersons(10), endtu(360)
 {
-    latu = HRS2TU(0.1); //XXX CUSTOMIZE
+    latu = gconfig.lookahead;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1007,8 +1110,11 @@ void Region::init( int ac, char *av[] )
         static ofstream exadbgstrm;
         string logfname = "exacorona-" + to_string(fed_id()) + ".log";
         exadbgstrm.open(logfname);
-        _exadbgstrm = &exadbgstrm;
-        cout<<"Writing ExaCorona log to "<<logfname<<endl;
+        if( exadbgstrm.is_open() )
+        {
+            _exadbgstrm = &exadbgstrm;
+            cout<<"Writing ExaCorona log to "<<logfname<<endl;
+        }
     }
 
     //Disease
@@ -1071,9 +1177,9 @@ void Region::init( int ac, char *av[] )
         }
     }
 
-    nlocations = 10;
-    npersons = 100;
-    endtu.ts = 10.0;
+    nlocations = 1000; //XXX
+    npersons = 100000; //XXX
+    endtu.ts = gconfig.endtime;
 
     const char *envstr = 0;
     if((envstr=getenv("EXACORONA_NBRREACH"))) prob.nbrreach = atoi(envstr);
@@ -1089,8 +1195,6 @@ void Region::init( int ac, char *av[] )
         cout << fed_id() << ": Region" <<
                " lookahead= " << latu << " hours" <<
                " locality= " << prob.locality*100.0<<"%" <<
-               " #locations= " << nlocations <<
-               " #persons= " << npersons <<
                " endtime= " << endtu << " hours" <<
                endl;
     }
@@ -1145,6 +1249,65 @@ void Region::stop( void )
         << ", " << " recd= " << tot.nrecd << " undone= "
         << nundone.nrecd << endl;
     }
+}
+
+/*---------------------------------------------------------------------------*/
+double Region::parsetime( const string &timestr )
+{
+    double tmtu = 0;
+    int si = timestr.find_first_of(" mwdhms");
+    if( si == string::npos )
+    {
+        double tm = stod(timestr);
+        tmtu = HRS2TU( tm );
+    }
+    else
+    {
+        if(timestr[si]==' ')si++;
+        string unitstr = timestr.substr(si);
+        double tm = stod(timestr);
+        tmtu = TU( unitstr, tm );
+    }
+    return tmtu;
+}
+
+/*---------------------------------------------------------------------------*/
+double Region::TU( const string &timeunitstr, double tm )
+{
+    double tu = 0;
+    if(( timeunitstr == "month" )||( timeunitstr == "months" ))
+    {
+        tu = MONTHS2TU( tm );
+    }
+    else if(( timeunitstr == "week" )||( timeunitstr == "weeks" ))
+    {
+        tu = WEEKS2TU( tm );
+    }
+    else if(( timeunitstr == "day" )||( timeunitstr == "days" ))
+    {
+        tu = DAYS2TU( tm );
+    }
+    else if(( timeunitstr == "hour" )||( timeunitstr == "hours" ))
+    {
+        tu = HRS2TU( tm );
+    }
+    else if(( timeunitstr == "minute" )||( timeunitstr == "minutes" ))
+    {
+        tu = MINS2TU( tm );
+    }
+    else if(( timeunitstr == "second" )||( timeunitstr == "seconds" ))
+    {
+        tu = SECS2TU( tm );
+    }
+    else if( timeunitstr == "" )
+    {
+        tu = HRS2TU( tm );
+    }
+    else
+    {
+        FAIL("Unknown time unit string \""<<timeunitstr<<"\"");
+    }
+    return tu;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1300,8 +1463,10 @@ void app_event_data_unpack( int evtype, SimEvent *ev, const char *buf, int bufsz
 void GlobalConfig::load( json &js )
 {
     gconfig.scaledown         = js["scaledown factor"];
-    gconfig.endtime           = js["endtime"];
-    gconfig.lookahead         = js["lookahead"];
+    string endtimestr         = js["endtime"];
+    gconfig.endtime           = Region::parsetime(endtimestr);
+    string lookaheadstr       = js["lookahead"];
+    gconfig.lookahead         = Region::parsetime(lookaheadstr);
     gconfig.scenariodir       = js["scenario"];
 
     {
@@ -1318,6 +1483,32 @@ void GlobalConfig::load( json &js )
 /*---------------------------------------------------------------------------*/
 int main( int ac, char *av[] )
 {
+    string tmstr;
+    tmstr="10months"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10month"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10 months"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10 month"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10weeks"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10week"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10 weeks"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10 week"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10days"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10day"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10 days"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10 day"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10hours"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10hour"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10 hours"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10 hour"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10minutes"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10minute"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10 minutes"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10 minute"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10seconds"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10second"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10 seconds"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+    tmstr="10 second"; cout<<"\""<<tmstr<<"\" = "<<Region::parsetime(tmstr)<<endl;
+
     {
         string gconfigfname = "exacorona.json";
         if( ac > 1 )
