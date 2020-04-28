@@ -2,7 +2,7 @@
 
 _Kalyan Perumalla_
 
-**Last updated**: _April 19, 2020_
+**Last updated**: _April 27, 2020_
 
 - **Scalable Generator of Simulated Datasets for COVID and Similar Pandemics**
 
