@@ -1,1 +1,1 @@
-../sim/bin/exacorona ./example.json
+mpirun -np 1 ../sim/bin/exacorona ./example.json

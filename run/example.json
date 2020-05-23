@@ -1,6 +1,6 @@
 {
     "scenario"    : "../data/example",
     "scaledown"   : "10000x",
-    "endtime"     : "10.0 days",
+    "endtime"     : "1.0 day",
     "lookahead"   : "1.0 minute"
 }

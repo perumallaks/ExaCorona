@@ -301,42 +301,109 @@ class HealthTransition
 ostream &operator<<(ostream &out, const HealthTransition &hs){return hs>>out;}
 
 //-----------------------------------------------------------------------------
+typedef unsigned long PersonID;
+
+//-----------------------------------------------------------------------------
+class PopulationDB
+{
+    public: struct Entry
+        {
+            Entry( void ) : age(0), vaccinated(false) {}
+            float age;
+            bool vaccinated;
+        };
+    public: bool addentry( const PersonID &pid, const Entry &pe )
+        {
+            bool added = false;
+            if( entries.find(pid) == entries.end() )
+            {
+                entries.insert( EntryMap::value_type( pid, pe ) );
+                added = true;
+            }
+            return added;
+        }
+    public: bool getentry( const PersonID &pid, Entry &pe ) const
+        {
+            bool found = false;
+            EntryMap::const_iterator cit = entries.find( pid );
+            if( cit != entries.end() )
+            {
+                pe = cit->second;
+                found = true;
+            }
+            return found;
+        }
+    private: typedef map<PersonID,Entry> EntryMap;
+    private: EntryMap entries;
+};
+static PopulationDB popdb;
+
+//-----------------------------------------------------------------------------
+typedef string LocationID;
+
+//-----------------------------------------------------------------------------
+class LocationDB
+{
+    public: struct Entry
+        {
+            Entry( void ) : pid() {}
+            SimPID pid;
+        };
+    public: bool addentry( const LocationID &lid, const Entry &le )
+        {
+            bool added = false;
+            if( entries.find(lid) == entries.end() )
+            {
+                entries.insert( EntryMap::value_type( lid, le ) );
+                added = true;
+            }
+            return added;
+        }
+    public: bool getentry( const LocationID &lid, Entry &le ) const
+        {
+            bool found = false;
+            EntryMap::const_iterator cit = entries.find( lid );
+            if( cit != entries.end() )
+            {
+                le = cit->second;
+                found = true;
+            }
+            return found;
+        }
+    private: typedef map<LocationID,Entry> EntryMap;
+    private: EntryMap entries;
+};
+static LocationDB locdb;
+
+//-----------------------------------------------------------------------------
 class Person
 {
-    public: typedef unsigned long PersonID;
-
     public: Person( void ) :
-        personid(0), createdat(), age(0),
-        vaccinated(false), rng(0), infectts(SimTime::MAX_TIME), istate() {}
+        personid(0), createdat(),
+        rng(0), infectts(SimTime::MAX_TIME), istate() {}
     public: Person( const PersonID &_i, const SimPID &_l, const float &_a,
                     const double &_d ) :
-        personid(_i), createdat(_l), age(_a),
-        vaccinated(false), rng(_d), infectts(SimTime::MAX_TIME), istate() {}
+        personid(_i), createdat(_l),
+        rng(_d), infectts(SimTime::MAX_TIME), istate() {}
     public: Person( const Person &p ) :
-        personid(p.personid), createdat(p.createdat), age(p.age),
-        vaccinated(p.vaccinated), rng(p.rng), infectts(p.infectts),
-        istate(p.istate) {}
+        personid(p.personid), createdat(p.createdat),
+        rng(p.rng), infectts(p.infectts), istate(p.istate) {}
     public: const Person &operator=( const Person &p )
-        { personid=p.personid; createdat=p.createdat; age=p.age;
-        vaccinated=p.vaccinated; rng=p.rng; infectts=p.infectts;
+        { personid=p.personid; createdat=p.createdat;
+          rng=p.rng; infectts=p.infectts;
         istate=p.istate; return *this; }
     public: virtual ~Person() {}
 
-    public: void setinfectts(const SimTime &ts){ infectts = ts; }
-    public: const SimTime &getinfectts(void)const{ return infectts; }
+    public: void setinfectts(const SimTime &ts){infectts=ts;}
+    public: const SimTime &getinfectts(void)const{return infectts;}
 
-    public: void markinfectious( ISFeatureType is )
-                     { istate.resetto(is); }
+    public: void markinfectious( ISFeatureType is ) { istate.resetto(is); }
 
     public: const PersonID &getpersonid(void)const{return personid;}
     public: const SimPID &getcreatedat(void)const{return createdat;}
-    public: const float &getage(void)const{return age;}
 
-    public: void setvaccinated( void ){ vaccinated = true; }
-    public: bool isvaccinated( void )const{ return vaccinated; }
-
-    public: void setrng( double _r ) { rng = _r; }
-    public: double getrng( void )const{ return rng; }
+    public: void setrng(double _r){rng=_r;}
+    public: double getrng(void)const{return rng;}
 
     public: InfectionState &accistate(void){return istate;}
     public: const InfectionState &getistate(void)const{return istate;}
@@ -344,8 +411,6 @@ class Person
     /*These remain constant/unmodified after creation*/
     private: PersonID personid;
     private: SimPID createdat;
-    private: float age;
-    private: bool vaccinated;
     private: double rng;
 
     /*These are updated over time*/
@@ -394,7 +459,7 @@ class Location : public NormalSimProcess
     protected: string locname;
     protected: long initialpop;
     protected: long nsent, nrecd, ninfected;
-    protected: typedef map<Person::PersonID, PersonContainer> OccupantMap;
+    protected: typedef map<PersonID, PersonContainer> OccupantMap;
     protected: OccupantMap occupants;
     protected: unsigned long tempid_counter;/*For unique temp IDs of occupants*/
     protected: HealthTransition ptts_normal, ptts_vaccinated;
@@ -403,7 +468,7 @@ class Location : public NormalSimProcess
 
     protected: void evolve_infection( Person &person,
                                       const SimTime &dts, int tempid );
-    protected: int infect_occupants( const Person::PersonID &tempid );
+    protected: int infect_occupants( const PersonID &tempid );
 
     protected: double infectprob; void recompute_infectprob( void ); //XXX
 
@@ -413,30 +478,6 @@ class Location : public NormalSimProcess
                    { return low + (randunif()*(high-low)); }
     protected: double randexp( double mean )
                    { return RandExponential(PID().loc_id, mean); }
-};
-
-//-----------------------------------------------------------------------------
-class Collector : public NormalSimProcess
-{
-    public: Collector( void );
-    public: virtual ~Collector() {}
-    protected: virtual void init( void );
-    protected: virtual void execute( SimEvent *event );
-    protected: virtual void wrapup( void );
-
-    protected: Region *psim(){return (Region*)Simulator::sim();}
-
-    protected: struct SimPIDCmp {
-                   bool operator()( const SimPID &s1, const SimPID &s2 ) const
-                       { return s1.fed_id < s2.fed_id ||
-                                (s1.fed_id == s2.fed_id &&
-                                 s1.loc_id < s2.loc_id); }
-               };
-    protected: typedef map<SimPID,long,SimPIDCmp> CounterMap;
-
-    protected: CounterMap ninfected;
-    protected: long totinfected;
-    protected: void compute_total( void );
 };
 
 //-----------------------------------------------------------------------------
@@ -452,10 +493,8 @@ class Region : public Simulator
     public: long getnpersons( void ) const { return npersons; }
     public: const SimTime &getlatu( void ) const { return latu; }
     public: const SimTime &getendtu( void ) const { return endtu; }
-    public: const SimPID &getcollectorpid( void ) const { return collector_pid;}
 
     protected: string regname;
-    protected: SimPID collector_pid;
     protected: long nlocations, npersons;
     protected: SimTime latu;/*Lookahead in timeunits*/
     protected: SimTime endtu;
@@ -474,10 +513,8 @@ class Region : public Simulator
 
     protected: void randinit(int n) { RandInit(n, fed_id()); }
 
-    public:  struct Stats
-             { unsigned long nsent, nrecd; Stats() { nsent = nrecd = 0; }
-             } local, remote, nundone, tot;
-    public:  struct Probs
+    public: unsigned long nsent, nrecd;
+    public: struct Probs
              { double infected; //Frac of initially infected
                double vaccinated; //Frac of initially vaccinated
                double meanstaydt; //Avg #hrs person stays at a location
@@ -494,14 +531,14 @@ class Region : public Simulator
                locality = 0.90;
                nbrreach = -1;
               }
-             };
-    protected:  Probs prob;
-    public:  const Probs &getprob( void ) const { return prob; }
+            };
+    protected: Probs prob;
+    public: const Probs &getprob( void ) const { return prob; }
 };
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-enum ExaCoronaEventType { ARRIVAL, DEPARTURE, ISTATECHANGE, STATS };
+enum ExaCoronaEventType { ARRIVAL, DEPARTURE, ISTATECHANGE };
 struct ExaCoronaData
 {
     ExaCoronaEventType etype;
@@ -535,14 +572,14 @@ class ArrivalEvent : public ExaCoronaEvent
 //-----------------------------------------------------------------------------
 struct DepartureData
 {
-    Person::PersonID tempid;
+    PersonID tempid;
 };
 class DepartureEvent : public ExaCoronaEvent
 {
     DEFINE_LEAF_EVENT(Departure, DepartureEvent, ExaCoronaEvent);
     public: DepartureEvent( void ) :
             ExaCoronaEvent(DEPARTURE) {}
-    public: DepartureEvent( const Person::PersonID &id ) :
+    public: DepartureEvent( const PersonID &id ) :
             ExaCoronaEvent(DEPARTURE) { data.tempid = id; }
 
     public: DepartureData data;
@@ -551,34 +588,20 @@ class DepartureEvent : public ExaCoronaEvent
 //-----------------------------------------------------------------------------
 struct InfectionStateChangeData
 {
-    Person::PersonID tempid;
-    int saved_istate;
-    SimTime saved_infectts;
+    PersonID tempid;
 };
 class InfectionStateChangeEvent : public ExaCoronaEvent
 {
     DEFINE_LEAF_EVENT(InfectionStateChange,
             InfectionStateChangeEvent, ExaCoronaEvent);
     public: InfectionStateChangeEvent( void ) :
+            ExaCoronaEvent(ISTATECHANGE) {}
+    public: InfectionStateChangeEvent( const PersonID &id ) :
             ExaCoronaEvent(ISTATECHANGE)
-            { data.saved_infectts = SimTime::MAX_TIME; }
-    public: InfectionStateChangeEvent( const Person::PersonID &id ) :
-            ExaCoronaEvent(ISTATECHANGE)
-            { data.tempid = id; data.saved_infectts = SimTime::MAX_TIME; }
+            { data.tempid = id; }
     public: InfectionStateChangeData data;
 };
 
-//-----------------------------------------------------------------------------
-struct StatisticsData
-{
-    int ninfected;
-};
-class StatisticsEvent : public ExaCoronaEvent
-{
-    DEFINE_LEAF_EVENT(Statistics, StatisticsEvent, ExaCoronaEvent);
-    public: StatisticsEvent( void ) : ExaCoronaEvent(STATS) { data.ninfected = 0; }
-    public: StatisticsData data;
-};
 //-----------------------------------------------------------------------------
 struct EventData
 {
@@ -588,7 +611,6 @@ struct EventData
         ArrivalData arr;
         DepartureData dep;
         InfectionStateChangeData isc;
-        StatisticsData stat;
     };
 };
 
@@ -661,56 +683,6 @@ void HealthTransition::loadptts( json &js )
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-Collector::Collector( void ) : ninfected(), totinfected(0)
-{
-    Region *reg = psim();
-    enable_undo( false );
-    add_dest( SimPID::ANY_PID, SimTime::MAX_TIME );
-}
-
-//-----------------------------------------------------------------------------
-void Collector::init( void )
-{
-}
-
-//-----------------------------------------------------------------------------
-void Collector::compute_total( void )
-{
-    long old = totinfected;
-    totinfected = 0;
-    for( CounterMap::const_iterator it = ninfected.begin();
-         it != ninfected.end(); it++ )
-    {
-        totinfected += it->second;
-    }
-    ENSURE( 0, old <= totinfected, old<<" "<<totinfected );
-}
-
-//-----------------------------------------------------------------------------
-void Collector::execute( SimEvent *event )
-{
-    Region *reg = psim();
-    ExaCoronaEvent *re = reinterpret_cast<ExaCoronaEvent *>(event);
-    ENSURE( 0, re->getetype() == STATS, "" );
-    StatisticsEvent *se = reinterpret_cast<StatisticsEvent *>(re);
-    ninfected[event->source()] = se->data.ninfected;
-    compute_total();
-    EXADBG( 0, PID() << " @ " << now().ts <<
-            " EVENTNAME= " << *event->name() <<
-            " LOCATION= " << event->source() <<
-            " NINFECTED " << se->data.ninfected <<
-            " TOTINFECTED " << totinfected );
-}
-
-//-----------------------------------------------------------------------------
-void Collector::wrapup( void )
-{
-    compute_total();
-    EXADBG( 0, PID() << " TOTINFECTED " << totinfected );
-}
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 Location::Location( long pnum,
                     const string &lname, const string &jsfname,
                     const HealthTransition &_pnorm,
@@ -744,7 +716,7 @@ void Location::init( void )
 
     /*Add persons to this location*/
     long npersons2create = initialpop;
-    Person::PersonID startpid = 0; //XXX TBC
+    PersonID startpid = 0; //XXX TBC
     EXADBG(3, PID()<<" startpersonid "<<startpid);
     int ninf = 0;
     for( long i = 0; i < npersons2create; i++ )
@@ -764,11 +736,6 @@ void Location::init( void )
             ninf++;
         }
 
-        if(randunif() < reg->getprob().vaccinated)
-        {
-            newp.setvaccinated();
-        }
-
         ArrivalEvent *ae = new ArrivalEvent( newp );
         send( PID(), ae, arrdt );
         nsent++;
@@ -784,8 +751,8 @@ void Location::init( void )
 //-----------------------------------------------------------------------------
 void Location::evolve_infection( Person &person, const SimTime &dts, int tempid)
 {
-    const HealthTransition &trans =
-            (person.isvaccinated() ?  ptts_vaccinated : ptts_normal);
+    bool isvaccinated = false; //XXX TBC
+    const HealthTransition &trans = (isvaccinated ? ptts_vaccinated : ptts_normal);
     int ist = person.getistate().get();
     double rng = randunif();
     const HealthTransition::Entry &entry = trans.nextstate( ist, rng );
@@ -818,8 +785,9 @@ void Location::recompute_infectprob( void )
     {
         const PersonContainer &container = it->second;
         const Person &person = container.getperson();
+        bool isvaccinated = false; //XXX TBC
         const HealthTransition &trans =
-                (person.isvaccinated() ?  ptts_vaccinated : ptts_normal);
+                (isvaccinated ? ptts_vaccinated : ptts_normal);
         if( trans.isinfectious(person.getistate()) )
         {
             SimTime dt = container.getdts() - now(); //XXX arrival_ts or now()?
@@ -837,7 +805,7 @@ void Location::recompute_infectprob( void )
 }
 
 //-----------------------------------------------------------------------------
-int Location::infect_occupants( const Person::PersonID &tempid )
+int Location::infect_occupants( const PersonID &tempid )
 {
     Region *reg = psim();
     int ninf = 0;
@@ -887,17 +855,6 @@ int Location::infect_occupants( const Person::PersonID &tempid )
 
     EXADBG( 2, PID()<<" @ "<<now()<<" infect_occupants()= " << ninf);
 
-    if( ninf > 0 )
-    {
-        long div = (reg->getnpersons()/(reg->getnlocations()))/10;
-        if( false /*XXX TBC*/ && div > 0 && (ninfected+ninf) % div == 0 )
-        {
-            StatisticsEvent *se = new StatisticsEvent();
-            se->data.ninfected = ninfected+ninf;
-            send( reg->getcollectorpid(), se, reg->getlatu() );
-        }
-    }
-
     return ninf;
 }
 
@@ -913,12 +870,6 @@ void Location::execute( SimEvent *event )
                " execute " << *re << " eventtype=" << re->getetype() <<
                " nsent= " << nsent << " recd= " << nrecd );
 
-if(re->source().fed_id!=PID().fed_id){
-  if(reg->remote.nrecd++%100000==99999){EXADBG(0,"Fed "<<PID().fed_id<<" remote-nrecd="<<reg->remote.nrecd);}
-}else{
-  if(reg->local.nrecd++%1000000==999999){EXADBG(0,"Fed "<<PID().fed_id<<" local-nrecd="<<reg->local.nrecd);}
-}
-
     switch( re->getetype() )
     {
         case ARRIVAL:
@@ -933,7 +884,7 @@ if(re->source().fed_id!=PID().fed_id){
             SimTime depts = now() + depdt;
 
             /*Generate a locally unique, temporary identifier*/
-            Person::PersonID tempid = tempid_counter++;
+            PersonID tempid = tempid_counter++;
 
             /*Add to local occupants*/
             PersonContainer container( ae->data.person, depts );
@@ -1020,10 +971,6 @@ if(re->source().fed_id!=PID().fed_id){
             PersonContainer &container = occ_it->second;
             Person &person = container.accperson();
 
-            /*Save current state & timestamp*/
-            ie->data.saved_istate = person.getistate().get();
-            ie->data.saved_infectts = person.getinfectts();
-
             /*Move to its next state*/
             evolve_infection( person, container.getdts(), ie->data.tempid );
 
@@ -1070,14 +1017,14 @@ void Location::wrapup( void )
     EXADBG( 2, "Location " << PID() <<
                " ninfected= " << ninfected <<
                " nsent= " << nsent << " nrecd= "<<nrecd );
-    reg->tot.nsent += nsent;
-    reg->tot.nrecd += nrecd;
+    reg->nsent += nsent;
+    reg->nrecd += nrecd;
 }
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
 Region::Region( void ) :
-    regname(""), nlocations(2), npersons(10), endtu(360)
+    regname(""), nlocations(2), npersons(10), endtu(360), nsent(0), nrecd(0)
 {
     latu = gconfig.lookahead;
 }
@@ -1190,14 +1137,6 @@ void Region::init( int ac, char *av[] )
 
     if( fed_id() == 0 )
     {
-        Collector *collector = new Collector();
-        add( collector );
-    }
-
-    collector_pid = SimPID( locations_per_fed, 0 ); //Last one on 0'th fed
-
-    if( fed_id() == 0 )
-    {
         ANIM( "-1 N "<<num_feds()<<" "<<getnlocations()<<" "<< getnpersons() );
     }
 }
@@ -1207,8 +1146,8 @@ void Region::run( void )
 {
     if(fed_id()==0)
     {
-        cout << "\n---------\nStarting ExaCorona: "<<
-               " on "<<num_feds() << " feds\n---------" << endl;
+        EXADBG( 0, "\n---------\nStarting ExaCorona: " <<
+                   " on "<<num_feds() << " feds\n---------" );
     }
 
     report_status( endtu/10, endtu );
@@ -1217,8 +1156,8 @@ void Region::run( void )
 
     if(fed_id()==0)
     {
-        cout << "\n---------\nStopping ExaCorona: "<<
-               " on "<<num_feds() << " feds\n---------" << endl;
+        EXADBG( 0, "\n---------\nStopping ExaCorona: " <<
+                   " on "<<num_feds() << " feds\n---------" );
     }
 }
 
@@ -1229,9 +1168,8 @@ void Region::stop( void )
 
     if( fed_id() == 0 )
     {
-    cout<< fed_id()<<": #Arrivals sent= " << tot.nsent
-        << ", " << " recd= " << tot.nrecd << " undone= "
-        << nundone.nrecd << endl;
+        EXADBG( 0, fed_id()<<": #Arrivals sent= " << nsent
+                   << ", " << " recd= " << nrecd );
     }
 }
 
@@ -1349,7 +1287,7 @@ int app_event_data_size( int evtype, const SimEvent *ev )
 /*---------------------------------------------------------------------------*/
 SimEvent *app_event_create( int evtype, char *buf )
 {
-    EXADBG( 8, "starting app_event_create " << evtype );
+    EXADBG( 8, "Starting app_event_create " << evtype );
     SimEvent *ev = 0;
     switch( evtype )
     {
@@ -1371,26 +1309,20 @@ SimEvent *app_event_create( int evtype, char *buf )
             ev = ie;
             break;
         }
-        case STATS: 
-        {
-            StatisticsEvent *se = new (buf) StatisticsEvent();
-            ev = se;
-            break;
-        }
         default:
         {
             FAIL("Impossible");
             break;
         }
     }
-    EXADBG( 8, "done app_event_create " << evtype );
+    EXADBG( 8, "Done app_event_create " << evtype );
     return ev;
 }
 
 /*---------------------------------------------------------------------------*/
 void app_event_data_pack( int evtype, const SimEvent *ev, char *buf, int bufsz )
 {
-    EXADBG( 8, "starting app_event_data_pack " << evtype );
+    EXADBG( 8, "Starting app_event_data_pack " << evtype );
     ENSURE( 0, bufsz == sizeof(EventData), bufsz << " " << sizeof(EventData) );
     EventData *ed = reinterpret_cast<EventData *>(buf);
     switch( evtype )
@@ -1417,26 +1349,19 @@ void app_event_data_pack( int evtype, const SimEvent *ev, char *buf, int bufsz )
             ed->isc = ie->data;
             break;
         }
-        case STATS: 
-        {
-            const StatisticsEvent *se = reinterpret_cast<const StatisticsEvent*>(ev);
-            ed->redif = se->edata;
-            ed->stat = se->data;
-            break;
-        }
         default:
         {
             FAIL("Impossible");
             break;
         }
     }
-    EXADBG( 8, "done app_event_data_pack " << evtype );
+    EXADBG( 8, "Done app_event_data_pack " << evtype );
 }
 
 /*---------------------------------------------------------------------------*/
 void app_event_data_unpack( int evtype, SimEvent *ev, const char *buf, int bufsz )
 {
-    EXADBG( 8, "starting app_event_data_unpack " << evtype );
+    EXADBG( 8, "Starting app_event_data_unpack " << evtype );
     ENSURE( 0, bufsz == sizeof(EventData), bufsz << " " << sizeof(EventData) );
     const EventData *ed = reinterpret_cast<const EventData *>(buf);
     switch( evtype )
@@ -1463,20 +1388,13 @@ void app_event_data_unpack( int evtype, SimEvent *ev, const char *buf, int bufsz
             ie->data = ed->isc;
             break;
         }
-        case STATS: 
-        {
-            StatisticsEvent *se = reinterpret_cast<StatisticsEvent*>(ev);
-            se->edata = ed->redif;
-            se->data = ed->stat;
-            break;
-        }
         default:
         {
             FAIL("Impossible");
             break;
         }
     }
-    EXADBG( 8, "done app_event_data_unpack " << evtype );
+    EXADBG( 8, "Done app_event_data_unpack " << evtype );
 }
 
 /*---------------------------------------------------------------------------*/
