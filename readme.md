@@ -2,7 +2,7 @@
 
 _Kalyan Perumalla_
 
-**Last updated**: _April 27, 2020_
+**Last updated**: _May 23, 2020_
 
 - **Scalable Generator of Simulated Datasets for COVID and Similar Pandemics**
 
@@ -30,7 +30,7 @@ Animations previously generated for publications cited below.  The animation too
 
 - `cd sim/src; make`
 - `cd run; ./run.sh`
-- `cd viz/simple; ./gendata.sh`
+- `cd viz/simple; ./extractdata.sh`
 - `cd viz/simple; python3 ./plot.py`
 
 # References
@@ -88,7 +88,7 @@ ExaCorona is aimed at at least three dimensions of scalability:
 
 - `viz` : To house visualization tools.
 
-    - [As of Apr 15, 2020: Contains `gendata.sh` and `plot.py`]
+    - [As of May 23, 2020: Contains `extractdata.sh` and `plot.py`]
 
 # Installation, Compilation, and Execution
 
